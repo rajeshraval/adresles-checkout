@@ -1,0 +1,45 @@
+#adresles_checkout_wrapper {
+    margin-bottom: 20px;
+}
+
+.adresles-checkout-container {
+    background: #000;
+    color: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.adresles-gift-section {
+    background: #000;
+    color: #fff;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.adresles-notice {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 10px;
+}
+
+.temp-msg-div{
+    background: #fff;
+    color: #721c24;
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 10px;
+}
+
+.adresles-register-link {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.adresles-register-link:hover {
+    text-decoration: underline;
+}
+
+/* Add more custom styles here */
