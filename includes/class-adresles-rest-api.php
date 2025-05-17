@@ -196,6 +196,12 @@ class Adresles_Checkout_Plugin {
 	 * Generate and cache JWT token.
 	 */
 	public function get_jwt_token() {
+		// Check if token is already cached
+		$cached_token = get_transient( 'adresles_jwt_token' );
+		if ( $cached_token ) {
+			return $cached_token;
+		}
+
 		$keys = get_option( 'adresles_plugin_keys', [] );
 
 		if ( empty( $keys['app_id'] ) || empty( $keys['secret'] ) ) {
@@ -223,7 +229,7 @@ class Adresles_Checkout_Plugin {
 			return new WP_Error( 'token_error', __( 'Failed to get JWT token.', 'adresles-checkout' ), $data );
 		}
 
-		set_transient( 'adresles_jwt_token', $data['token'], 50 * MINUTE_IN_SECONDS );
+		set_transient( 'adresles_jwt_token', $data['token'], 10 * MINUTE_IN_SECONDS );
 
 		return $data['token'];
 	}

@@ -37,12 +37,7 @@ class Adresles_Checkout_Frontend {
                 'ajax_url'     => admin_url( 'admin-ajax.php' ),
                 'nonce'        => wp_create_nonce( 'adresles_nonce' ),
                 'register_url' => 'https://app.stg.adresles.com/register',
-                'api_path'     => rest_url(),
-                'get_token_url' => 'https://5uerf2f2o9.execute-api.us-east-1.amazonaws.com/staging/getToken',
-                'get_user_url'  => 'https://5uerf2f2o9.execute-api.us-east-1.amazonaws.com/staging/getUser',
-                'register_url'  => 'https://5uerf2f2o9.execute-api.us-east-1.amazonaws.com/staging/createConsumerUser',
-                'app_id'        => $app_id,
-                'secret'        => $secret,
+                'api_path'     => rest_url(),             
             ] );
         }
     }

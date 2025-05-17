@@ -1,37 +1,11 @@
 jQuery(function ($) {
-	let adreslesToken = null;
 	let pollInterval = null;
 	const pollDelay = 5000; // 5 seconds
 	const registerUrl = adreslesData.register_url;
 
-	// Utility: Fetch JWT token from REST API
-	async function fetchToken() {
-		if (adreslesToken) return adreslesToken;
-
-		try {
-			const response = await fetch(adreslesData.api_path + 'adresles/v1/generate-token/', {
-				method: 'GET',
-				credentials: 'same-origin'
-			});
-			const data = await response.json();
-			if (!data.token) throw new Error('No token returned');
-			adreslesToken = data.token;
-			return adreslesToken;
-		} catch (error) {
-			console.error('Error fetching token:', error);
-			return null;
-		}
-	}
-
 	// Fetch user by phone using token
 	async function fetchUserByPhone(phone) {
 		if (!phone) return null;
-
-		const token = await fetchToken();
-		if (!token) {
-			showError('No token available. Please try again later.');
-			return null;
-		}
 
         // Show loading message
 	    if (!$('.adresles-fetching-message').length) {
@@ -44,7 +18,6 @@ jQuery(function ($) {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					Authorization: 'Bearer ' + token
 				},
 				credentials: 'same-origin',
 				body: JSON.stringify({ phone: phone })
@@ -77,6 +50,7 @@ jQuery(function ($) {
 
 	// Fill billing/shipping fields
 	function fillAddressFields(data, phone) {
+		console.log(data);
 		if (!data || !data.userData) return;
 
 		const d = data.userData;
@@ -207,7 +181,13 @@ jQuery(function ($) {
 
 	$('#adresles_gift_selected_field input').change(toggleGiftFields);
 
-	$('#adresles_mobile').on('keyup', onPhoneBlur);
+	let debounceTimer;
+	$('#adresles_mobile').on('keyup', function () {
+		clearTimeout(debounceTimer);
+		debounceTimer = setTimeout(() => {
+			onPhoneBlur();
+		}, 3000); // 3 seconds
+	});
 
 	$(document).on('click', '.adresles-register-link', function (e) {
 		e.preventDefault();
