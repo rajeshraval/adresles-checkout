@@ -1,40 +1,58 @@
 <?php
-if (!defined('ABSPATH')) exit;
+
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
 class Adresles_Checkout_Frontend {
+
     public function __construct() {
-        add_action('wp_enqueue_scripts', [$this, 'enqueue_assets']);
+        add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_assets' ] );
+        add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_assets' ] );
     }
 
     public function enqueue_assets() {
-        if (is_checkout()) {
+        if ( is_checkout() ) {
+
             wp_enqueue_style(
                 'adresles-checkout-style',
-                plugin_dir_url(__DIR__) . 'assets/css/adresles-checkout.css',
+                plugin_dir_url( __DIR__ ) . 'assets/css/adresles-checkout.css',
                 [],
                 '1.0.0'
             );
 
             wp_enqueue_script(
                 'adresles-checkout-js',
-                plugin_dir_url(__DIR__) . 'assets/js/adresles-checkout.js',
-                ['jquery'],
+                plugin_dir_url( __DIR__ ) . 'assets/js/adresles-checkout.js',
+                [ 'jquery' ],
                 '1.0.0',
                 true
             );
 
-            $keys = get_option( 'adresles_plugin_keys', [] );
-
+            $keys   = get_option( 'adresles_plugin_keys', [] );
             $app_id = isset( $keys['app_id'] ) ? $keys['app_id'] : '';
             $secret = isset( $keys['secret'] ) ? $keys['secret'] : '';
 
             wp_localize_script( 'adresles-checkout-js', 'adreslesData', [
                 'ajax_url'     => admin_url( 'admin-ajax.php' ),
                 'nonce'        => wp_create_nonce( 'adresles_nonce' ),
-                'register_url'  => 'https://app.stg.adresles.com/register',
-                'api_path' => rest_url()                
-            ] );                        
-            
+                'register_url' => 'https://app.stg.adresles.com/register',
+                'api_path'     => rest_url(),
+                'get_token_url' => 'https://5uerf2f2o9.execute-api.us-east-1.amazonaws.com/staging/getToken',
+                'get_user_url'  => 'https://5uerf2f2o9.execute-api.us-east-1.amazonaws.com/staging/getUser',
+                'register_url'  => 'https://5uerf2f2o9.execute-api.us-east-1.amazonaws.com/staging/createConsumerUser',
+                'app_id'        => $app_id,
+                'secret'        => $secret,
+            ] );
         }
+    }
+
+    public function enqueue_admin_assets(){
+        wp_enqueue_style(
+            'adresles-admin-style',
+            plugin_dir_url( __DIR__ ) . 'assets/css/adresles-admin.css',
+            [],
+            '1.0.0'
+        );
     }
 }

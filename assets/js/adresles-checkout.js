@@ -67,7 +67,7 @@ jQuery(function ($) {
     function getCountryCodeByLabel(label) {
         let code = '';
         $('#billing_country option').each(function () {
-            if ($(this).text().trim().toLowerCase() === label.trim().toLowerCase()) {
+			if (label && $(this).text().trim().toLowerCase() === label.trim().toLowerCase()) {
                 code = $(this).val();
                 return false; // stop loop
             }
@@ -82,20 +82,24 @@ jQuery(function ($) {
 		const d = data.userData;
 
 		// Split full name
-        const nameParts = d.name.trim().split(' ');
+        const nameParts = (d.name || '').trim().split(' ');
         const firstName = nameParts.slice(0, -1).join(' ') || d.name;
         const lastName = nameParts.slice(-1).join(' ') || '';
 
         // Dynamically get country/state codes from Woo dropdowns
         const countryCode = getCountryCodeByLabel(d.country);
 
+		// console.log('ddd', data);		
+
         $('#billing_first_name, #shipping_first_name').val(firstName);
         $('#billing_last_name, #shipping_last_name').val(lastName);
-        $('#billing_address_1, #shipping_address_1').val(d.address || '');
-        $('#billing_city, #shipping_city').val(d.city || '');
-        $('#billing_postcode, #shipping_postcode').val(d.zip_code || '');
+        $('#billing_address_1, #shipping_address_1').val(d.default_address || '');
+        $('#billing_address_2, #shipping_address_2').val('');
+        $('#billing_city, #shipping_city').val(d.city || 'Bucaramanga');
+        $('#billing_postcode, #shipping_postcode').val(d.zip_code || '68001');
         $('#billing_state, #shipping_state').val('CO-TOL');
-        $('#billing_country, #shipping_country').val(countryCode);
+        $('#billing_country, #shipping_country').val('CO');
+
         $('#billing_email').val(d.email || '');
         $('#billing_phone').val(d.phone || phone);
 
@@ -155,28 +159,55 @@ jQuery(function ($) {
 			$giftCheckbox.prop('disabled', false);
 			$adreslesPhone.prop('disabled', false);
 		} else {
-			$('.woocommerce-billing-fields__field-wrapper, .woocommerce-shipping-fields, .woocommerce-additional-fields').show();
 			$giftCheckbox.prop('checked', false).prop('disabled', true);
-			$adreslesPhone.prop('disabled', true);
-			$('#gift_name_field, #gift_lastname_field, #gift_phone_field, #gift_note_field').hide();
+			toggleGiftFields();
+			$('.woocommerce-billing-fields__field-wrapper, .woocommerce-shipping-fields, .woocommerce-additional-fields').show();
+			$adreslesPhone.prop('disabled', true);			
 		}
 	}
 
-	function toggleGiftFields() {
-        const giftChecked = $('#adresles_gift_selected_field input').is(':checked');
-        const fields = '#gift_name_field, #gift_lastname_field, #gift_phone_field, #gift_note_field';
-        $(fields).slideToggle(giftChecked);
-    }
+	let originalShippingParent = null;
 
+	jQuery(function ($) {
+		// On DOM ready, store the original parent
+		originalShippingParent = $('.woocommerce-shipping-fields').parent();
+	});
+
+	function toggleGiftFields() {
+		const giftChecked = $('#adresles_gift_selected_field input').is(':checked');
+		const $giftArea = $('#adresles_gift_shippping_section');
+		const $shippingFields = $('.woocommerce-shipping-fields');
+
+		if (giftChecked) {
+			// Move shipping fields into gift area
+			if (!$giftArea.find('.woocommerce-shipping-fields').length) {
+				$shippingFields.appendTo($giftArea);
+			}
+			$('.woocommerce-shipping-fields').show();
+			$('#ship-to-different-address').hide();
+			$('input#ship-to-different-address-checkbox').prop('checked', true).trigger('change');
+			$giftArea.slideDown();
+
+		} else {
+			$giftArea.slideUp();
+			$('.woocommerce-shipping-fields').hide();			
+			// Move it back to original container
+			if (originalShippingParent && !originalShippingParent.find('.woocommerce-shipping-fields').length) {
+				$shippingFields.appendTo(originalShippingParent);
+				$('#ship-to-different-address').show();
+				$('input#ship-to-different-address-checkbox').prop('checked', false).trigger('change');
+			}
+		}
+	}
+	
 	// Event bindings
 	$('#adresles_checkout_selected_field input').change(function () {
 		toggleAdreslesLogic();
-		// toggleGiftFields();
 	});
 
 	$('#adresles_gift_selected_field input').change(toggleGiftFields);
 
-	$('#adresles_mobile').on('blur', onPhoneBlur);
+	$('#adresles_mobile').on('keyup', onPhoneBlur);
 
 	$(document).on('click', '.adresles-register-link', function (e) {
 		e.preventDefault();

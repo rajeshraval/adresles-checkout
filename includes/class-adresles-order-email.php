@@ -1,4 +1,5 @@
 <?php
+
 if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly
 }
@@ -14,41 +15,25 @@ class Adresles_Order_Email {
 
     /**
      * Add Adresles and Gift checkout details to WooCommerce emails (HTML format).
-     *
-     * This function outputs a styled table with relevant custom order meta data
-     * (like addressless checkout and gift information) into all WooCommerce emails,
-     * both for the customer and admin.
-     *
-     * @param WC_Order $order The WooCommerce order object.
-     * @param bool     $sent_to_admin Whether the email is sent to admin.
-     * @param bool     $plain_text Whether the email is plain text.
-     * @param WC_Email $email Email object.
      */
     public function add_adresles_checkout_to_email_block( $order, $sent_to_admin, $plain_text, $email ) {
-        // Ensure we have a valid order object
         if ( ! is_a( $order, 'WC_Order' ) ) {
             return;
         }
 
-        // Check if any relevant meta exists before proceeding
         $adresles_selected = get_post_meta( $order->get_id(), '_adresles_checkout_selected', true );
         $gift_selected     = get_post_meta( $order->get_id(), '_adresles_gift_selected', true );
 
         if ( $adresles_selected || $gift_selected ) {
 
-            // Section heading
             echo '<h2 style="margin-top:30px;">' . __( 'Información de Adresles / Regalo', 'adresles' ) . '</h2>';
-
-            // Begin table layout for clean email presentation
             echo '<table cellspacing="0" cellpadding="6" style="width: 100%; border: 1px solid #e5e5e5; margin-bottom: 20px;" border="1">';
 
-            // Adresles Checkout Info
             if ( $adresles_selected ) {
                 echo '<tr><th style="text-align:left;">' . __( 'Confirmaré la dirección luego con Adresles', 'adresles' ) . '</th><td>✔️</td></tr>';
                 echo '<tr><th style="text-align:left;">' . __( 'Teléfono Móvil', 'adresles' ) . '</th><td>' . esc_html( get_post_meta( $order->get_id(), '_adresles_mobile', true ) ) . '</td></tr>';
             }
 
-            // Gift Checkout Info
             if ( $gift_selected ) {
                 echo '<tr><th style="text-align:left;">' . __( 'Es un regalo', 'adresles' ) . '</th><td>✔️</td></tr>';
                 echo '<tr><th style="text-align:left;">' . __( 'Nombre', 'adresles' ) . '</th><td>' . esc_html( get_post_meta( $order->get_id(), '_gift_name', true ) ) . '</td></tr>';
@@ -57,13 +42,12 @@ class Adresles_Order_Email {
                 echo '<tr><th style="text-align:left;">' . __( 'Nota', 'adresles' ) . '</th><td>' . nl2br( esc_html( get_post_meta( $order->get_id(), '_gift_note', true ) ) ) . '</td></tr>';
             }
 
-            // End table
             echo '</table>';
         }
-    }    
+    }
 
     /**
-     * Save Confirmaré la dirección luego con Adresles and Gift fields to order meta
+     * Save Adresles and Gift fields to order meta.
      */
     public function save_adresles_checkout_order_meta( $order_id, $data ) {
         $order = wc_get_order( $order_id );
@@ -71,7 +55,6 @@ class Adresles_Order_Email {
         if ( isset( $_POST['adresles_checkout_selected'] ) && $_POST['adresles_checkout_selected'] === '1' ) {
             update_post_meta( $order_id, '_adresles_checkout_selected', 'yes' );
             update_post_meta( $order_id, '_adresles_mobile', sanitize_text_field( $_POST['adresles_mobile'] ) );
-
             $order->add_order_note( 'Order placed via Confirmaré la dirección luego con Adresles.' );
         }
 
@@ -81,16 +64,17 @@ class Adresles_Order_Email {
             update_post_meta( $order_id, '_gift_lastname', sanitize_text_field( $_POST['gift_lastname'] ) );
             update_post_meta( $order_id, '_gift_phone', sanitize_text_field( $_POST['gift_phone'] ) );
             update_post_meta( $order_id, '_gift_note', sanitize_textarea_field( $_POST['gift_note'] ) );
-
             $order->add_order_note( 'Es un regalo selected: For ' . sanitize_text_field( $_POST['gift_name'] ) . ' ' . sanitize_text_field( $_POST['gift_lastname'] ) );
         }
-    }    
+    }
 
     /**
-     * Show custom fields on thank you page and My Account > View Order
+     * Show custom fields on thank you page and My Account > View Order.
      */
     public function display_order_details_on_thankyou( $order ) {
-        if ( ! is_a( $order, 'WC_Order' ) ) return;
+        if ( ! is_a( $order, 'WC_Order' ) ) {
+            return;
+        }
 
         echo '<section class="adresles-order-section" style="margin-top:20px;">';
         echo '<h3>' . __( 'Adresles & Es un regalo Info', 'adresles' ) . '</h3>';
@@ -114,10 +98,12 @@ class Adresles_Order_Email {
     }
 
     /**
-     * Show in WooCommerce Admin Order Panel
+     * Show in WooCommerce Admin Order Panel.
      */
     public function display_admin_order_meta_box( $order ) {
-        if ( ! is_a( $order, 'WC_Order' ) ) return;
+        if ( ! is_a( $order, 'WC_Order' ) ) {
+            return;
+        }
 
         echo '<div class="adresles-admin-box" style="padding:10px;border:1px solid #ccc;margin:250px 0px 0px 0px;">';
         echo '<h3>' . __( 'Adresles & Es un regalo Info', 'adresles' ) . '</h3>';

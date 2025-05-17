@@ -2,6 +2,33 @@
     margin-bottom: 20px;
 }
 
+.plugin-entry {
+    background-color: #FFF;
+    padding: 25px;
+}
+
+.plugin-entry h1 {
+    text-align: center;
+    font-weight: bold;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 24px;
+    border-bottom: 1px solid #E0E621;
+    padding-bottom: 20px;
+}
+
+.plugin-entry .button-primary {
+    background: #000000;
+    padding: 4px 25px;
+    font-family: Helvetica, Arial, sans-serif;
+    font-weight: bold;
+    border-radius: 6px;
+}
+
+#right-image {
+    position: absolute;
+    right: 10px;
+}
+
 .adresles-checkout-container {
     background: #000;
     color: #fff;
@@ -25,7 +52,7 @@
     margin-top: 10px;
 }
 
-.temp-msg-div{
+.temp-msg-div {
     background: #fff;
     color: #721c24;
     padding: 10px;
