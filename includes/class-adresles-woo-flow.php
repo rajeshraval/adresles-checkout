@@ -12,6 +12,44 @@ class Adresles_Woo_Flow
         add_action('woocommerce_checkout_update_order_meta', [$this, 'save_adresles_checkout_fields']);
         // add_filter('woocommerce_checkout_fields', [$this, 'maybe_make_billing_fields_optional']);
         add_action('woocommerce_checkout_process', [$this, 'validate_adresles_gift_fields']);
+        add_action( 'wp_ajax_get_cart_summary', [ $this, 'get_cart_summary' ] );
+        add_action( 'wp_ajax_nopriv_get_cart_summary', [ $this, 'get_cart_summary' ] );
+    }
+
+    /**
+     * AJAX handler to return WooCommerce cart summary for Adresles.
+     */
+    public function get_cart_summary() {
+        if ( ! WC()->cart ) {
+            wp_send_json_error( [ 'message' => 'Cart is not available.' ] );
+        }
+
+        $cart         = WC()->cart;
+        $cart_items   = $cart->get_cart();
+        $order_total  = floatval( $cart->get_total( 'edit' ) );
+        $order_id     = uniqid();        
+
+        $order_products = [];
+
+        foreach ( $cart_items as $item ) {
+            $product = $item['data'];
+            if ( ! $product instanceof WC_Product ) {
+                continue;
+            }
+            $order_products[] = [
+                'name'     => $product->get_name(),
+                'price'    => floatval( $product->get_price() ),
+                'quantity' => intval( $item['quantity'] ),
+            ];
+        }
+
+        $response = [
+            'order_id'       => $order_id,
+            'order_amount'   => $order_total,
+            'order_products' => $order_products,
+        ];
+
+        wp_send_json_success( $response );
     }
 
     public function add_adresles_checkout_fields()

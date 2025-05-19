@@ -2,6 +2,7 @@ jQuery(function ($) {
 	let pollInterval = null;
 	const pollDelay = 15000; // 15 seconds
 	const registerUrl = adreslesData.register_url;
+	const site_url = adreslesData.site_url;
 	let pollAttempt = 0;
 
 	// Fetch user by phone using token
@@ -16,7 +17,7 @@ jQuery(function ($) {
         }
 
 		try {
-			const cartDetail = await fetch('/wp-admin/admin-ajax.php?action=get_cart_summary')
+			const cartDetail = await fetch(site_url + '/wp-admin/admin-ajax.php?action=get_cart_summary')
 			.then(response => response.json())
 			.then(data => {
 				if (data.success === false) {

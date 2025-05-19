@@ -38,6 +38,7 @@ class Adresles_Checkout_Frontend {
                 'nonce'        => wp_create_nonce( 'adresles_nonce' ),
                 'register_url' => 'https://app.stg.adresles.com/register?url_callback='.wc_get_checkout_url(),
                 'api_path'     => rest_url(),             
+                'site_url'     => site_url(),             
             ] );
         }
     }
