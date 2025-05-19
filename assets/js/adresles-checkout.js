@@ -1,26 +1,41 @@
 jQuery(function ($) {
 	let pollInterval = null;
-	const pollDelay = 5000; // 5 seconds
+	const pollDelay = 15000; // 15 seconds
 	const registerUrl = adreslesData.register_url;
+	let pollAttempt = 0;
 
 	// Fetch user by phone using token
 	async function fetchUserByPhone(phone) {
 		if (!phone) return null;
 
         // Show loading message
-	    if (!$('.adresles-fetching-message').length) {
+	    if (!$('.adresles-fetching-message').length && pollAttempt === 0) {
+			pollAttempt++;
             const $loader = $('<div class="adresles-fetching-message" style="margin-top: 8px; padding: 10px; background: #fff3cd; color: #856404;">🕐 Obteniendo tus datos...</div>');
             $('#adresles_mobile').after($loader);
-        }        
+        }
 
 		try {
+			const cartDetail = await fetch('/wp-admin/admin-ajax.php?action=get_cart_summary')
+			.then(response => response.json())
+			.then(data => {
+				if (data.success === false) {
+					console.error('Error:', data.data);
+				} else {
+					return data;
+				}
+			})
+			.catch(error => console.error('Fetch error:', error));
+
+			if(!cartDetail) return;
+
 			const response = await fetch(adreslesData.api_path + 'adresles/v1/get-user-by-phone/', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 				},
 				credentials: 'same-origin',
-				body: JSON.stringify({ phone: phone })
+				body: JSON.stringify({phone: phone, ...cartDetail})
 			});
 
 			if (response.status === 404) return null;
@@ -50,10 +65,10 @@ jQuery(function ($) {
 
 	// Fill billing/shipping fields
 	function fillAddressFields(data, phone) {
-		console.log(data);
 		if (!data || !data.userData) return;
 
 		const d = data.userData;
+		const job = data.job;
 
 		// Split full name
         const nameParts = (d.name || '').trim().split(' ');
@@ -62,8 +77,6 @@ jQuery(function ($) {
 
         // Dynamically get country/state codes from Woo dropdowns
         const countryCode = getCountryCodeByLabel(d.country);
-
-		// console.log('ddd', data);		
 
         $('#billing_first_name, #shipping_first_name').val(firstName);
         $('#billing_last_name, #shipping_last_name').val(lastName);
@@ -78,10 +91,16 @@ jQuery(function ($) {
         $('#billing_phone').val(d.phone || phone);
 
 		$('.adresles-notice').hide();
+		
+		let message = '✅ Dirección obtenida correctamente.';
+		if(job.state == 'IN_PROGRESS') {
+			message = '✅ Esperando confirmación de datos.';
+		}
 		$('.temp-msg-div')
-			.text('✅ Dirección obtenida correctamente.')
-			.css({ background: '#d4edda', color: '#155724', padding: '10px', display: 'block' })
-			.show();
+				.text(message)
+				.css({ background: '#d4edda', color: '#155724', padding: '10px', display: 'block' })
+				.show();
+
 	}
 
 	// Show register fallback message
@@ -109,8 +128,10 @@ jQuery(function ($) {
 	// Phone blur = trigger API
 	async function onPhoneBlur() {
 		const phone = $('#adresles_mobile').val().trim();
+		pollAttempt = 0;
+		if (pollInterval) clearInterval(pollInterval);
 		if (!phone) return;
-
+		if(phone.length < 10) return;
 		const data = await fetchUserByPhone(phone);
 
 		if (data) {
@@ -118,7 +139,6 @@ jQuery(function ($) {
 			if (pollInterval) clearInterval(pollInterval);
 		} else {
 			showError('No address found for this phone number.');
-			startPolling(phone);
 		}
 	}
 
@@ -182,15 +202,38 @@ jQuery(function ($) {
 	$('#adresles_gift_selected_field input').change(toggleGiftFields);
 
 	let debounceTimer;
-	$('#adresles_mobile').on('keyup', function () {
+	$('#adresles_mobile').on('keypress', function (e) {
+		if (e.which < 48 || e.which > 57) {
+			e.preventDefault();
+		}
 		clearTimeout(debounceTimer);
 		debounceTimer = setTimeout(() => {
 			onPhoneBlur();
-		}, 3000); // 3 seconds
+		}, 1000); // 1 seconds
+	});
+
+	$('#adresles_mobile').on('paste', function(e) {
+		e.preventDefault();
+		var pastedData = (e.originalEvent || e).clipboardData.getData('text');
+
+		pastedData = pastedData.replace(/[^\d+]/g, '');
+
+		if (pastedData.indexOf('+') > 0) {
+			pastedData = pastedData.replace(/\+/g, '');
+		} else if ((pastedData.match(/\+/g) || []).length > 1) {
+			pastedData = pastedData.replace(/\+/g, ''); 
+		}
+
+		$(this).val(pastedData);
+		onPhoneBlur();
 	});
 
 	$(document).on('click', '.adresles-register-link', function (e) {
 		e.preventDefault();
+		const phone = $('#adresles_mobile').val();
+		if(phone) {
+			startPolling(phone);
+		}
 		window.open(registerUrl, '_blank', 'noopener');
 	});
 

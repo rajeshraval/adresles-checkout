@@ -36,7 +36,7 @@ class Adresles_Checkout_Frontend {
             wp_localize_script( 'adresles-checkout-js', 'adreslesData', [
                 'ajax_url'     => admin_url( 'admin-ajax.php' ),
                 'nonce'        => wp_create_nonce( 'adresles_nonce' ),
-                'register_url' => 'https://app.stg.adresles.com/register',
+                'register_url' => 'https://app.stg.adresles.com/register?url_callback='.wc_get_checkout_url(),
                 'api_path'     => rest_url(),             
             ] );
         }
