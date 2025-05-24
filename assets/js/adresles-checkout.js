@@ -1,9 +1,9 @@
 jQuery(function ($) {
 	let pollInterval = null;
-	const pollDelay = 15000; // 15 seconds
+	const pollDelay = 5000; // 15 seconds
 	const registerUrl = adreslesData.register_url;
-	const site_url = adreslesData.site_url;
 	let pollAttempt = 0;
+	const plugin_dir_url = adreslesData.plugin_dir_url;
 
 	// Fetch user by phone using token
 	async function fetchUserByPhone(phone) {
@@ -11,24 +11,30 @@ jQuery(function ($) {
 
         // Show loading message
 	    if (!$('.adresles-fetching-message').length && pollAttempt === 0) {
-			pollAttempt++;
-            const $loader = $('<div class="adresles-fetching-message" style="margin-top: 8px; padding: 10px; background: #fff3cd; color: #856404;">🕐 Obteniendo tus datos...</div>');
+			const $loader = $(`<img class="adresles-fetching-message" alt="" style="float:right;margin-top:5px;height:32px;width:32px;" src="${plugin_dir_url}assets/images/loader.gif" />`);
             $('#adresles_mobile').after($loader);
         }
 
 		try {
-			const cartDetail = await fetch(site_url + '/wp-admin/admin-ajax.php?action=get_cart_summary')
-			.then(response => response.json())
-			.then(data => {
-				if (data.success === false) {
-					console.error('Error:', data.data);
-				} else {
-					return data;
-				}
-			})
-			.catch(error => console.error('Fetch error:', error));
 
-			if(!cartDetail) return;
+			console.log('pollAttempt', pollAttempt);
+			let cartDetail = {};
+
+			if(pollAttempt === 0) {
+				cartDetail = await fetch('/wp-admin/admin-ajax.php?action=get_cart_summary')
+				.then(response => response.json())
+				.then(data => {
+					if (data.success === false) {
+						console.error('Error:', data.data);
+					} else {
+						return data;
+					}
+				})
+				.catch(error => console.error('Fetch error:', error));
+
+				if(!cartDetail) return;
+			}
+			pollAttempt++;
 
 			const response = await fetch(adreslesData.api_path + 'adresles/v1/get-user-by-phone/', {
 				method: 'POST',
@@ -69,7 +75,6 @@ jQuery(function ($) {
 		if (!data || !data.userData) return;
 
 		const d = data.userData;
-		const job = data.job;
 
 		// Split full name
         const nameParts = (d.name || '').trim().split(' ');
@@ -89,27 +94,17 @@ jQuery(function ($) {
         $('#billing_country, #shipping_country').val('CO');
 
         $('#billing_email').val(d.email || '');
-        $('#billing_phone').val(d.phone || phone);
+        $('#billing_phone, #shipping_phone').val(d.phone || phone);
 
 		$('.adresles-notice').hide();
-		
-		let message = '✅ Dirección obtenida correctamente.';
-		if(job.state == 'IN_PROGRESS') {
-			message = '✅ Esperando confirmación de datos.';
-		}
-		$('.temp-msg-div')
-				.text(message)
-				.css({ background: '#d4edda', color: '#155724', padding: '10px', display: 'block' })
-				.show();
-
 	}
 
 	// Show register fallback message
 	function showError(message) {
 		$('.adresles-notice').hide();
 		$('.temp-msg-div')
-			.html(`${message} <a href="${registerUrl}" target="_blank" rel="noopener noreferrer" class="adresles-register-link">Click here to register</a>`)
-			.css({ color: 'red', display: 'block' })
+			.html(`${message} <a href="${registerUrl}" target="_blank" rel="noopener noreferrer" class="adresles-register-link" style="font-size:16px;display:block;color:#1D4D6E;font-weight:600">Click here to register</a>`)
+			.css({ color: 'red', display: 'block', background:"#FFFFFF", fontSize: '20px', textTransform: 'capitalize'})
 			.show();
 	}
 
@@ -118,11 +113,21 @@ jQuery(function ($) {
 		if (pollInterval) clearInterval(pollInterval);
 		pollInterval = setInterval(async () => {
 			const data = await fetchUserByPhone(phone);
-			if (data) {
+			if(data.job.state == "IN_PROGRESS"){
+				$('.temp-msg-div')
+				.text('⏱️ Esperando confirmación de datos.')
+				.css({ background: '#E0E621', color: '#000000', padding: '10px', display: 'block' })
+				.show();			
+				startPolling(phone);
+			}else{
+				$('.temp-msg-div')
+				.text('✅ Dirección obtenida correctamente.')
+				.css({ background: '#d4edda', color: '#155724', padding: '10px', display: 'block' })
+				.show();
 				fillAddressFields(data, phone);
 				clearInterval(pollInterval);
 				pollInterval = null;
-			}
+			}			
 		}, pollDelay);
 	}
 
@@ -136,8 +141,21 @@ jQuery(function ($) {
 		const data = await fetchUserByPhone(phone);
 
 		if (data) {
-			fillAddressFields(data, phone);
-			if (pollInterval) clearInterval(pollInterval);
+			console.log('data', data.job.state)
+			if(data.job.state == "IN_PROGRESS"){
+				$('.temp-msg-div')
+				.text('⏱️ Esperando confirmación de datos.')
+				.css({ background: '#E0E621', color: '#000000', padding: '10px', display: 'block' })
+				.show();				
+				startPolling(phone);
+			} else {
+				$('.temp-msg-div')
+				.text('✅ Dirección obtenida correctamente.')
+				.css({ background: '#d4edda', color: '#155724', padding: '10px', display: 'block' })
+				.show();
+				fillAddressFields(data, phone);
+				if (pollInterval) clearInterval(pollInterval);
+			}			
 		} else {
 			showError('No address found for this phone number.');
 		}
@@ -149,15 +167,18 @@ jQuery(function ($) {
 		const $giftCheckbox = $('#adresles_gift_selected_field input');
 		const $adreslesPhone = $('#adresles_mobile_field input');
 
+		$('.temp-msg-div').hide();
 		if (adreslesChecked) {
+			$('#adresles_mobile_field_wapper,#adresles_gift_section').show();
 			$('.woocommerce-billing-fields__field-wrapper, .woocommerce-shipping-fields, .woocommerce-additional-fields').hide();
 			$giftCheckbox.prop('disabled', false);
 			$adreslesPhone.prop('disabled', false);
 		} else {
 			$giftCheckbox.prop('checked', false).prop('disabled', true);
-			toggleGiftFields();
+			// toggleGiftFields();
 			$('.woocommerce-billing-fields__field-wrapper, .woocommerce-shipping-fields, .woocommerce-additional-fields').show();
 			$adreslesPhone.prop('disabled', true);			
+			$('#adresles_mobile_field_wapper,#adresles_gift_section').hide();
 		}
 	}
 
@@ -168,39 +189,39 @@ jQuery(function ($) {
 		originalShippingParent = $('.woocommerce-shipping-fields').parent();
 	});
 
-	function toggleGiftFields() {
-		const giftChecked = $('#adresles_gift_selected_field input').is(':checked');
-		const $giftArea = $('#adresles_gift_shippping_section');
-		const $shippingFields = $('.woocommerce-shipping-fields');
+	// function toggleGiftFields() {
+	// 	const giftChecked = $('#adresles_gift_selected_field input').is(':checked');
+	// 	const $giftArea = $('#adresles_gift_shippping_section');
+	// 	const $shippingFields = $('.woocommerce-shipping-fields');
 
-		if (giftChecked) {
-			// Move shipping fields into gift area
-			if (!$giftArea.find('.woocommerce-shipping-fields').length) {
-				$shippingFields.appendTo($giftArea);
-			}
-			$('.woocommerce-shipping-fields').show();
-			$('#ship-to-different-address').hide();
-			$('input#ship-to-different-address-checkbox').prop('checked', true).trigger('change');
-			$giftArea.slideDown();
+	// 	if (giftChecked) {
+	// 		// Move shipping fields into gift area
+	// 		if (!$giftArea.find('.woocommerce-shipping-fields').length) {
+	// 			$shippingFields.appendTo($giftArea);
+	// 		}
+	// 		$('.woocommerce-shipping-fields').show();
+	// 		$('#ship-to-different-address').hide();
+	// 		$('input#ship-to-different-address-checkbox').prop('checked', true).trigger('change');
+	// 		$giftArea.slideDown();
 
-		} else {
-			$giftArea.slideUp();
-			$('.woocommerce-shipping-fields').hide();			
-			// Move it back to original container
-			if (originalShippingParent && !originalShippingParent.find('.woocommerce-shipping-fields').length) {
-				$shippingFields.appendTo(originalShippingParent);
-				$('#ship-to-different-address').show();
-				$('input#ship-to-different-address-checkbox').prop('checked', false).trigger('change');
-			}
-		}
-	}
+	// 	} else {
+	// 		$giftArea.slideUp();
+	// 		$('.woocommerce-shipping-fields').hide();			
+	// 		// Move it back to original container
+	// 		if (originalShippingParent && !originalShippingParent.find('.woocommerce-shipping-fields').length) {
+	// 			$shippingFields.appendTo(originalShippingParent);
+	// 			$('#ship-to-different-address').show();
+	// 			$('input#ship-to-different-address-checkbox').prop('checked', false).trigger('change');
+	// 		}
+	// 	}
+	// }
 	
 	// Event bindings
 	$('#adresles_checkout_selected_field input').change(function () {
 		toggleAdreslesLogic();
 	});
 
-	$('#adresles_gift_selected_field input').change(toggleGiftFields);
+	// $('#adresles_gift_selected_field input').change(toggleGiftFields);
 
 	let debounceTimer;
 	$('#adresles_mobile').on('keypress', function (e) {

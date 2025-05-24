@@ -14,6 +14,56 @@ class Adresles_Woo_Flow
         add_action('woocommerce_checkout_process', [$this, 'validate_adresles_gift_fields']);
         add_action( 'wp_ajax_get_cart_summary', [ $this, 'get_cart_summary' ] );
         add_action( 'wp_ajax_nopriv_get_cart_summary', [ $this, 'get_cart_summary' ] );
+        add_filter( 'woocommerce_checkout_fields', [ $this, 'add_shipping_phone_field' ] );
+        add_action( 'woocommerce_admin_order_data_after_shipping_address', [ $this, 'show_shipping_phone_admin' ] );
+        add_action( 'woocommerce_email_after_order_table', [ $this, 'show_shipping_phone_email' ], 20, 4 );
+        add_action( 'woocommerce_order_details_after_order_table', [ $this, 'show_shipping_phone_thank_you' ] );
+
+    }
+
+    /**
+     * Add "shipping_phone" field to shipping section.
+     */
+    public function add_shipping_phone_field( $fields ) {
+        $fields['shipping']['shipping_phone'] = [
+            'label'       => __( 'Teléfono de Envío', 'adresles' ),
+            'required'    => true,
+            'class'       => [ 'form-row-wide' ],
+            'type'        => 'tel',
+            'priority'    => 120,
+            'autocomplete'=> 'tel',
+        ];
+        return $fields;
+    }
+
+    /**
+     * Show shipping phone in admin order details.
+     */
+    public function show_shipping_phone_admin( $order ) {
+        $shipping_phone = $order->get_meta( 'shipping_phone' );
+        if ( $shipping_phone ) {
+            echo '<p><strong>' . __( 'Teléfono de Envío:', 'adresles' ) . '</strong> ' . esc_html( $shipping_phone ) . '</p>';
+        }
+    }
+
+    /**
+     * Show shipping phone in customer/admin emails.
+     */
+    public function show_shipping_phone_email( $order, $sent_to_admin, $plain_text, $email ) {
+        $shipping_phone = $order->get_meta( 'shipping_phone' );
+        if ( $shipping_phone ) {
+            echo '<p><strong>' . __( 'Teléfono de Envío:', 'adresles' ) . '</strong> ' . esc_html( $shipping_phone ) . '</p>';
+        }
+    }
+
+    /**
+     * Show shipping phone on the Thank You page.
+     */
+    public function show_shipping_phone_thank_you( $order ) {
+        $shipping_phone = $order->get_meta( 'shipping_phone' );
+        if ( $shipping_phone ) {
+            echo '<p><strong>' . __( 'Teléfono de Envío:', 'adresles' ) . '</strong> ' . esc_html( $shipping_phone ) . '</p>';
+        }
     }
 
     /**
@@ -64,10 +114,11 @@ class Adresles_Woo_Flow
         woocommerce_form_field('adresles_checkout_selected', [
             'type'  => 'checkbox',
             'class' => ['form-row-wide'],
-            'label' => __('Confirmaré la dirección luego con Adresles', 'adresles'),
+            'label' => __('Usaré Adresles', 'adresles'),
         ]);
 
         // Adresles Mobile (Required)
+        echo '<div id="adresles_mobile_field_wapper" style="display:none;">';
         woocommerce_form_field('adresles_mobile', [
             'autocomplete'      => 'off',
             'type'              => 'tel',
@@ -76,13 +127,14 @@ class Adresles_Woo_Flow
             'custom_attributes' => ['disabled' => 'disabled'],
             'required'          => true,
         ]);
+        echo '</div>';
 
         echo '<div class="adresles-notice" style="margin-top:10px; color:red; display:none;">Dirección no encontrada. <a href="javascript:void(0);" class="adresles-register-link">Haz clic aquí para registrarte</a></div>';
         echo '<div class="temp-msg-div" style="margin-top:10px; color:red; display:none;"></div>';
         echo '</div>'; // Close black background
 
         // Gift Section (Initially visible but disabled)
-        echo '<div id="adresles_gift_section" class="adresles-gift-section" style="position:relative;">';
+        echo '<div id="adresles_gift_section" class="adresles-gift-section" style="position:relative;display:none">';
         echo '<img id="right-image" src="' . plugin_dir_url(dirname(__FILE__)) . 'assets/icon-label.png" alt="Adresles Info" style="width: 38px; vertical-align: middle; position:absolute; right: 10px;top: 20px;">';
 
         woocommerce_form_field('adresles_gift_selected', [
@@ -109,10 +161,6 @@ class Adresles_Woo_Flow
 
         if (!empty($_POST['adresles_gift_selected'])) {
             update_post_meta($order_id, 'adresles_gift_selected', 'yes');
-            update_post_meta($order_id, 'gift_name', sanitize_text_field($_POST['gift_name']));
-            update_post_meta($order_id, 'gift_lastname', sanitize_text_field($_POST['gift_lastname']));
-            update_post_meta($order_id, 'gift_phone', sanitize_text_field($_POST['gift_phone']));
-            update_post_meta($order_id, 'gift_note', sanitize_textarea_field($_POST['gift_note']));
         }
     }
 

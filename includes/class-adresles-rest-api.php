@@ -196,11 +196,10 @@ class Adresles_Checkout_Plugin {
 	 * Generate and cache JWT token.
 	 */
 	public function get_jwt_token() {
-		// Check if token is already cached
-		$cached_token = get_transient( 'adresles_jwt_token' );
-		if ( $cached_token ) {
-			return $cached_token;
-		}
+		// $cached_token = get_transient( 'adresles_jwt_token' );
+		// if ( $cached_token ) {
+		// 	return $cached_token;
+		// }
 
 		$keys = get_option( 'adresles_plugin_keys', [] );
 
@@ -229,7 +228,7 @@ class Adresles_Checkout_Plugin {
 			return new WP_Error( 'token_error', __( 'Failed to get JWT token.', 'adresles-checkout' ), $data );
 		}
 
-		set_transient( 'adresles_jwt_token', $data['token'], 10 * MINUTE_IN_SECONDS );
+		set_transient( 'adresles_jwt_token', $data['token'], 2 * MINUTE_IN_SECONDS );
 
 		return $data['token'];
 	}
@@ -237,12 +236,9 @@ class Adresles_Checkout_Plugin {
 	/**
 	 * Get user data by phone using JWT token.
 	 */
-	public function get_user_by_phone( $phone ) {
-		if ( empty( $phone ) ) {
-			return new WP_Error( 'no_phone', __( 'Phone number is required.', 'adresles-checkout' ) );
-		}
-
+	public function get_user_by_phone( $request ) {
 		$token = $this->get_jwt_token();
+
 		if ( is_wp_error( $token ) ) {
 			return $token;
 		}
@@ -255,7 +251,7 @@ class Adresles_Checkout_Plugin {
 					'Content-Type'  => 'application/json',
 					'Authorization' => 'Bearer ' . $token,
 				],
-				'body' => wp_json_encode( [ 'phone' => $phone ] ),
+				'body' => wp_json_encode( $request ),
 			]
 		);
 
@@ -316,8 +312,8 @@ class Adresles_Checkout_Plugin {
 	 * Handle user lookup by phone.
 	 */
 	public function handle_get_user_by_phone( WP_REST_Request $request ) {
-		$phone = $request->get_param( 'phone' );
-		$data  = $this->get_user_by_phone( $phone );
+		$request_param = $request->get_json_params();
+		$data          = $this->get_user_by_phone( $request_param );
 
 		if ( is_wp_error( $data ) ) {
 			return new WP_REST_Response( [ 'error' => $data->get_error_message() ], 500 );
