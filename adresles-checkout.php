@@ -18,6 +18,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/class-adresles-order-email.ph
 require_once plugin_dir_path(__FILE__) . 'includes/class-adresles-woo-flow.php';   // Include the new order/email class
 
 define('API_BASE_URL', 'https://5uerf2f2o9.execute-api.us-east-1.amazonaws.com/staging');
+define('BASE_URL', plugin_dir_url(__FILE__) );
 
 // Init plugin logic
 new Adresles_Checkout_Plugin();

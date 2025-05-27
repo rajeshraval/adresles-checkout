@@ -29,16 +29,19 @@ class Adresles_Checkout_Frontend {
                 true
             );
 
-            $keys   = get_option( 'adresles_plugin_keys', [] );
-            $app_id = isset( $keys['app_id'] ) ? $keys['app_id'] : '';
-            $secret = isset( $keys['secret'] ) ? $keys['secret'] : '';
+            // Get current mappings
+	        $field_mappings_status = get_option( 'is_adresles_field_mapping_done', false );
+	        $field_mappings = get_option( 'adresles_field_mapping', [] );
 
             wp_localize_script( 'adresles-checkout-js', 'adreslesData', [
                 'ajax_url'     => admin_url( 'admin-ajax.php' ),
                 'nonce'        => wp_create_nonce( 'adresles_nonce' ),
                 'register_url' => 'https://app.stg.adresles.com/register?url_callback='.wc_get_checkout_url(),
                 'api_path'     => rest_url(),
-                'plugin_dir_url' => plugin_dir_url( __DIR__ ),     
+                'plugin_dir_url' => plugin_dir_url( __DIR__ ),
+                'field_mappings_status' => $field_mappings_status,
+                'field_mapping_arr' => $field_mappings, 
+                'site_url'=> site_url(),    
             ] );
         }
     }

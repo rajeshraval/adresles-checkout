@@ -4,6 +4,11 @@ jQuery(function ($) {
 	const registerUrl = adreslesData.register_url;
 	let pollAttempt = 0;
 	const plugin_dir_url = adreslesData.plugin_dir_url;
+	const field_mappings_status = adreslesData.field_mappings_status || false;
+	const site_url = adreslesData.site_url;
+	const field_mapping_arr = adreslesData.field_mapping_arr;
+
+	console.log(field_mapping_arr);
 
 	// Fetch user by phone using token
 	async function fetchUserByPhone(phone) {
@@ -21,7 +26,7 @@ jQuery(function ($) {
 			let cartDetail = {};
 
 			if(pollAttempt === 0) {
-				cartDetail = await fetch('/wp-admin/admin-ajax.php?action=get_cart_summary')
+				cartDetail = await fetch(site_url + '/wp-admin/admin-ajax.php?action=get_cart_summary')
 				.then(response => response.json())
 				.then(data => {
 					if (data.success === false) {
@@ -76,27 +81,23 @@ jQuery(function ($) {
 
 		const d = data.userData;
 
-		// Split full name
-        const nameParts = (d.name || '').trim().split(' ');
-        const firstName = nameParts.slice(0, -1).join(' ') || d.name;
-        const lastName = nameParts.slice(-1).join(' ') || '';
+		Object.entries(field_mapping_arr).forEach(([fieldId, userKey]) => {
+			// Skip country/state, handle them separately
+			if (
+				['billing_country', 'shipping_country', 'billing_state', 'shipping_state'].includes(fieldId)
+			) {
+				return;
+			}
 
-        // Dynamically get country/state codes from Woo dropdowns
-        const countryCode = getCountryCodeByLabel(d.country);
+			const value = d[userKey];
+			if (value !== undefined && value !== null) {
+				$(`#${fieldId}`).val(value);
+			}
+		});
 
-        $('#billing_first_name, #shipping_first_name').val(firstName);
-        $('#billing_last_name, #shipping_last_name').val(lastName);
-        $('#billing_address_1, #shipping_address_1').val(d.default_address || '');
-        $('#billing_address_2, #shipping_address_2').val('');
-        $('#billing_city, #shipping_city').val(d.city || 'Bucaramanga');
-        $('#billing_postcode, #shipping_postcode').val(d.zip_code || '68001');
-        $('#billing_state, #shipping_state').val('CO-TOL');
-        $('#billing_country, #shipping_country').val('CO');
-
-        $('#billing_email').val(d.email || '');
-        $('#billing_phone, #shipping_phone').val(d.phone || phone);
-
-		$('.adresles-notice').hide();
+		// Country and state defaults (hardcoded)
+		$('#billing_country, #shipping_country').val('CO');
+		$('#billing_state, #shipping_state').val('CO-TOL');
 	}
 
 	// Show register fallback message
@@ -230,6 +231,13 @@ jQuery(function ($) {
 		}
 		clearTimeout(debounceTimer);
 		debounceTimer = setTimeout(() => {
+			if(!field_mappings_status){
+				$('.temp-msg-div')
+				.html('⚠️ Esta función no está funcionando en el sitio web porque hay configuraciones pendientes por parte del administrador.')
+				.css({ color: 'red', display: 'block', background:"#FFFFFF", fontSize: '20px', textTransform: 'capitalize'})
+				.show();
+				return;
+			}
 			onPhoneBlur();
 		}, 1000); // 1 seconds
 	});

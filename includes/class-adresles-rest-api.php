@@ -32,11 +32,9 @@ class Adresles_Checkout_Plugin {
 		);
 	}
 
-	/**
-	 * Render the plugin registration form.
-	 */
 	public function render_setup_form() {
 		$saved = get_option( 'adresles_plugin_info', [] );
+		$field_mappings = get_option( 'adresles_field_mapping', [] );
 
 		if (
 			isset( $_POST['adresles_register_nonce'] ) &&
@@ -56,72 +54,55 @@ class Adresles_Checkout_Plugin {
 			];
 
 			$response = $this->register_plugin( $data );
-
-			if ( is_wp_error( $response ) ) {
-				echo '<div class="notice notice-error"><p>' . esc_html( $response->get_error_message() ) . '</p></div>';
-			} else {
-				echo '<div class="notice notice-success"><p>' . esc_html__( 'Plugin registered successfully.', 'adresles-checkout' ) . '</p></div>';
+			if ( ! is_wp_error( $response ) ) {
 				update_option( 'adresles_plugin_info', $data );
 				$saved = $data;
+				echo '<div class="notice notice-success"><p>Registration successful.</p></div>';
+			} else {
+				if($response->get_error_message() == 'A plugin with this idPlugin already exists'){
+					echo '<div class="notice notice-success"><p>Setting Saved.</p></div>';
+				}else{
+					echo '<div class="notice notice-error"><p>' . esc_html( $response->get_error_message() ) . '</p></div>';
+				}
+			}
+
+			// Save field mapping
+			if ( ! empty( $_POST['field_mapping'] ) && is_array( $_POST['field_mapping'] ) ) {
+				$clean = [];
+				foreach ( $_POST['field_mapping'] as $k => $v ) {
+					$clean[ sanitize_text_field( $k ) ] = sanitize_text_field( $v );
+				}
+				update_option( 'adresles_field_mapping', $clean );
+				update_option( 'is_adresles_field_mapping_done', true );
+				$field_mappings = $clean;
 			}
 		}
 
+		// Setup variables
 		$plugin_id = ! empty( $saved['id_plugin'] ) ? $saved['id_plugin'] : wp_generate_uuid4();
 		$name      = $saved['name'] ?? get_bloginfo( 'name' );
 		$email     = $saved['email'] ?? get_option( 'admin_email' );
 		$phone     = $saved['phone'] ?? '';
 		$password  = $saved['password'] ?? wp_generate_password( 12, true );
-		?>
 
-		<div class="wrap plugin-entry">
-			<img src="<?php echo plugin_dir_url( dirname( __FILE__ ) ) . 'assets/adresles-logo.png'; ?>" alt="Adresles Logo" style="max-height: 60px; margin-bottom: 10px;">
-			<h1><?php esc_html_e( 'Welcome to Adresles Plugin Registration', 'adresles-checkout' ); ?></h1>
+		$sample_param = [ "phone" => "919913699728", "success" => true ];
+		$api_response = $this->get_user_by_phone( $sample_param );
 
-			<?php if ( ! empty( $saved['registered_at'] ) ) : ?>
-				<p style="color: green;">
-					<?php esc_html_e( 'Plugin registered on:', 'adresles-checkout' ); ?>
-					<strong><?php echo esc_html( $saved['registered_at'] ); ?></strong>
-				</p>
-			<?php endif; ?>
+		$api_fields = ( ! is_wp_error( $api_response ) && ! empty( $api_response['userData'] ) )
+			? array_keys( $api_response['userData'] )
+			: [];
 
-			<p><?php esc_html_e( 'Adresles es la solución que simplifica la compra online eliminando las barreras del checkout tradicional...', 'adresles-checkout' ); ?></p>
-			<p><?php esc_html_e( 'Simplifica el checkout, multiplica tus resultados.', 'adresles-checkout' ); ?></p>
+		$wc_fields = [];
+		if ( class_exists( 'WC_Checkout' ) ) {
+			$checkout = WC()->checkout();
+			foreach ( $checkout->get_checkout_fields() as $section => $fields ) {
+				foreach ( $fields as $key => $props ) {
+					$wc_fields[ $key ] = $props['label'] ?? $key;
+				}
+			}
+		}
 
-			<h2><?php esc_html_e( 'Checkout sin direcciones', 'adresles-checkout' ); ?></h2>
-			<ul>
-				<li><?php esc_html_e( '✅ Menos fricción, más ventas', 'adresles-checkout' ); ?></li>
-				<li><?php esc_html_e( '✅ Pedidos sin direcciones', 'adresles-checkout' ); ?></li>
-				<li><?php esc_html_e( '✅ Experiencia de usuario optimizada', 'adresles-checkout' ); ?></li>
-			</ul>
-
-			<form method="post">
-				<?php wp_nonce_field( 'adresles_register_plugin', 'adresles_register_nonce' ); ?>
-				<table class="form-table">
-					<tr>
-						<th><label for="id_plugin"><?php esc_html_e( 'Plugin ID', 'adresles-checkout' ); ?></label></th>
-						<td><input type="text" id="id_plugin" name="id_plugin" class="regular-text" value="<?php echo esc_attr( $plugin_id ); ?>" readonly></td>
-					</tr>
-					<tr>
-						<th><label for="name"><?php esc_html_e( 'Name', 'adresles-checkout' ); ?></label></th>
-						<td><input type="text" id="name" name="name" class="regular-text" value="<?php echo esc_attr( $name ); ?>" required></td>
-					</tr>
-					<tr>
-						<th><label for="email"><?php esc_html_e( 'Email', 'adresles-checkout' ); ?></label></th>
-						<td><input type="email" id="email" name="email" class="regular-text" value="<?php echo esc_attr( $email ); ?>" required></td>
-					</tr>
-					<tr>
-						<th><label for="phone"><?php esc_html_e( 'Phone', 'adresles-checkout' ); ?></label></th>
-						<td><input type="text" id="phone" name="phone" class="regular-text" value="<?php echo esc_attr( $phone ); ?>" placeholder="Optional"></td>
-					</tr>
-					<tr style="display:none">
-						<th><label for="password"><?php esc_html_e( 'Password', 'adresles-checkout' ); ?></label></th>
-						<td><input type="text" id="password" name="password" class="regular-text" value="<?php echo esc_attr( $password ); ?>" required></td>
-					</tr>
-				</table>
-				<?php submit_button( __( 'Register / Update Plugin', 'adresles-checkout' ) ); ?>
-			</form>
-		</div>
-		<?php
+		require plugin_dir_path( __FILE__ ) . 'admin/configuration-settings.php';
 	}
 
 	/**
