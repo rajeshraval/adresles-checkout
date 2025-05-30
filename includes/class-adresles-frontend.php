@@ -1,57 +1,57 @@
-<?php
-
-if ( ! defined( 'ABSPATH' ) ) {
-    exit;
-}
-
-class Adresles_Checkout_Frontend {
-
-    public function __construct() {
-        add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_assets' ] );
-        add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_assets' ] );
-    }
-
-    public function enqueue_assets() {
-        if ( is_checkout() ) {
-
-            wp_enqueue_style(
-                'adresles-checkout-style',
-                plugin_dir_url( __DIR__ ) . 'assets/css/adresles-checkout.css',
-                [],
-                '1.0.0'
-            );
-
-            wp_enqueue_script(
-                'adresles-checkout-js',
-                plugin_dir_url( __DIR__ ) . 'assets/js/adresles-checkout.js',
-                [ 'jquery' ],
-                '1.0.0',
-                true
-            );
-
-            // Get current mappings
-	        $field_mappings_status = get_option( 'is_adresles_field_mapping_done', false );
-	        $field_mappings = get_option( 'adresles_field_mapping', [] );
-
-            wp_localize_script( 'adresles-checkout-js', 'adreslesData', [
-                'ajax_url'     => admin_url( 'admin-ajax.php' ),
-                'nonce'        => wp_create_nonce( 'adresles_nonce' ),
-                'register_url' => 'https://app.stg.adresles.com/register?url_callback='.wc_get_checkout_url(),
-                'api_path'     => rest_url(),
-                'plugin_dir_url' => plugin_dir_url( __DIR__ ),
-                'field_mappings_status' => $field_mappings_status,
-                'field_mapping_arr' => $field_mappings, 
-                'site_url'=> site_url(),    
-            ] );
-        }
-    }
-
-    public function enqueue_admin_assets(){
-        wp_enqueue_style(
-            'adresles-admin-style',
-            plugin_dir_url( __DIR__ ) . 'assets/css/adresles-admin.css',
-            [],
-            '1.0.0'
-        );
-    }
-}
+<?php
+
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+class Adresles_Checkout_Frontend {
+
+    public function __construct() {
+        add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_assets' ] );
+        add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_assets' ] );
+    }
+
+    public function enqueue_assets() {
+        if ( is_checkout() ) {
+
+            wp_enqueue_style(
+                'adresles-checkout-style',
+                plugin_dir_url( __DIR__ ) . 'assets/css/adresles-checkout.css',
+                [],
+                '1.0.0'
+            );
+
+            wp_enqueue_script(
+                'adresles-checkout-js',
+                plugin_dir_url( __DIR__ ) . 'assets/js/adresles-checkout.js',
+                [ 'jquery' ],
+                '1.0.0',
+                true
+            );
+
+            // Get current mappings
+	        $field_mappings_status = get_option( 'is_adresles_field_mapping_done', false );
+	        $field_mappings = get_option( 'adresles_field_mapping', [] );
+
+            wp_localize_script( 'adresles-checkout-js', 'adreslesData', [
+                'ajax_url'     => admin_url( 'admin-ajax.php' ),
+                'nonce'        => wp_create_nonce( 'adresles_nonce' ),
+                'register_url' => 'https://app.stg.adresles.com/register?url_callback='.wc_get_checkout_url(),
+                'api_path'     => rest_url(),
+                'plugin_dir_url' => plugin_dir_url( __DIR__ ),
+                'field_mappings_status' => $field_mappings_status,
+                'field_mapping_arr' => $field_mappings, 
+                'site_url'=> site_url(),    
+            ] );
+        }
+    }
+
+    public function enqueue_admin_assets(){
+        wp_enqueue_style(
+            'adresles-admin-style',
+            plugin_dir_url( __DIR__ ) . 'assets/css/adresles-admin.css',
+            [],
+            '1.0.0'
+        );
+    }
+}

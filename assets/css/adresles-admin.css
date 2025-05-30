@@ -1,22 +1,22 @@
-.plugin-entry {
-    background-color: #FFF;
-    padding: 25px;
-}
-.plugin-entry h1 {
-    text-align: center;
-    font-weight: bold;
-    font-family: Helvetica, Arial, sans-serif;
-    font-size: 24px;
-    border-bottom: 1px solid #E0E621;
-    padding-bottom: 20px;
-}
-.plugin-entry .button-primary {
-    background: #000000;
-    padding: 4px 25px;
-    font-family: Helvetica, Arial, sans-serif;
-    font-weight: bold;
-    border-radius: 6px;
-}
-.adresles-cw {
-    width: 25% !important;
+.plugin-entry {
+    background-color: #FFF;
+    padding: 25px;
+}
+.plugin-entry h1 {
+    text-align: center;
+    font-weight: bold;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 24px;
+    border-bottom: 1px solid #E0E621;
+    padding-bottom: 20px;
+}
+.plugin-entry .button-primary {
+    background: #000000;
+    padding: 4px 25px;
+    font-family: Helvetica, Arial, sans-serif;
+    font-weight: bold;
+    border-radius: 6px;
+}
+.adresles-cw {
+    width: 25% !important;
 }

@@ -32,9 +32,23 @@ class Adresles_Checkout_Plugin {
 		);
 	}
 
+	private function get_api_base_url() {
+		$mode = get_option( 'adresles_api_mode', 'staging' );
+		return $mode === 'production'
+			? 'https://api.adresles.com/prod' // hypothetical production URL
+			: 'https://5uerf2f2o9.execute-api.us-east-1.amazonaws.com/staging';
+	}
+
+
 	public function render_setup_form() {
-		$saved = get_option( 'adresles_plugin_info', [] );
+		$saved          = get_option( 'adresles_plugin_info', [] );
 		$field_mappings = get_option( 'adresles_field_mapping', [] );
+
+		$plugin_id = ! empty( $saved['id_plugin'] ) ? $saved['id_plugin'] : wp_generate_uuid4();
+		$name      = $saved['name'] ?? get_bloginfo( 'name' );
+		$email     = $saved['email'] ?? get_option( 'admin_email' );
+		$phone     = $saved['phone'] ?? '';
+		$password  = $saved['password'] ?? wp_generate_password( 12, true );
 
 		if (
 			isset( $_POST['adresles_register_nonce'] ) &&
@@ -59,9 +73,9 @@ class Adresles_Checkout_Plugin {
 				$saved = $data;
 				echo '<div class="notice notice-success"><p>Registration successful.</p></div>';
 			} else {
-				if($response->get_error_message() == 'A plugin with this idPlugin already exists'){
+				if ( $response->get_error_message() == 'A plugin with this idPlugin already exists' ) {
 					echo '<div class="notice notice-success"><p>Setting Saved.</p></div>';
-				}else{
+				} else {
 					echo '<div class="notice notice-error"><p>' . esc_html( $response->get_error_message() ) . '</p></div>';
 				}
 			}
@@ -76,22 +90,55 @@ class Adresles_Checkout_Plugin {
 				update_option( 'is_adresles_field_mapping_done', true );
 				$field_mappings = $clean;
 			}
-		}
 
-		// Setup variables
-		$plugin_id = ! empty( $saved['id_plugin'] ) ? $saved['id_plugin'] : wp_generate_uuid4();
-		$name      = $saved['name'] ?? get_bloginfo( 'name' );
-		$email     = $saved['email'] ?? get_option( 'admin_email' );
-		$phone     = $saved['phone'] ?? '';
-		$password  = $saved['password'] ?? wp_generate_password( 12, true );
+		}else{
+			$is_secret_code_avl = get_option('adresles_plugin_keys', false);
 
-		$sample_param = [ "phone" => "919913699728", "success" => true ];
-		$api_response = $this->get_user_by_phone( $sample_param );
+			if( ! $is_secret_code_avl){
 
-		$api_fields = ( ! is_wp_error( $api_response ) && ! empty( $api_response['userData'] ) )
-			? array_keys( $api_response['userData'] )
+				$data = [
+				'id_plugin'      => $plugin_id,
+				'name'           => $name,
+				'phone'          => $phone,
+				'email'          => $email,
+				'password'       => $password,
+				'enrollmentDate' => date( 'Y-m-d' ),
+				'state'          => true,
+				'rol'            => 'Administrador',
+				'position'       => 'Manager',
+				'registered_at'  => current_time( 'mysql' ),
+				];
+
+				$response = $this->register_plugin( $data );
+				if ( ! is_wp_error( $response ) ) {
+					update_option( 'adresles_plugin_info', $data );
+					$saved = $data;
+					echo '<div class="notice notice-success"><p>Registration successful.</p></div>';
+				} else {
+					if ( $response->get_error_message() == 'A plugin with this idPlugin already exists' ) {
+						echo '<div class="notice notice-success"><p>Setting Saved.</p></div>';
+					} else {
+						echo '<div class="notice notice-error"><p>' . esc_html( $response->get_error_message() ) . '</p></div>';
+					}
+				}
+
+			}			
+		}		
+
+		$api_mode = get_option( 'adresles_api_mode', 'staging' );
+
+		if ( isset( $_POST['adresles_api_mode'] ) ) {
+			update_option( 'adresles_api_mode', sanitize_text_field( $_POST['adresles_api_mode'] ) );
+			$api_mode = sanitize_text_field( $_POST['adresles_api_mode'] );
+		}		
+
+		$api_response = $this->get_keys_for_configuration();
+
+		
+		$api_fields = ( ! is_wp_error( $api_response ) && ! empty( $api_response['userDataKeys'] ) )
+			?  $api_response['userDataKeys']
 			: [];
-
+		
 		$wc_fields = [];
 		if ( class_exists( 'WC_Checkout' ) ) {
 			$checkout = WC()->checkout();
@@ -116,7 +163,7 @@ class Adresles_Checkout_Plugin {
 				'type_plugin'  => 'Woocomerce',
 				'url_callback' => '/login',
 			],
-			'https://5uerf2f2o9.execute-api.us-east-1.amazonaws.com/staging/createEcommerceUser'
+			$this->get_api_base_url() . '/createEcommerceUser'
 		);
 
 		$response = wp_remote_post( $url, [
@@ -148,7 +195,7 @@ class Adresles_Checkout_Plugin {
 	 */
 	public function get_plugin_keys( $id_plugin ) {
 		$response = wp_remote_post(
-			'https://5uerf2f2o9.execute-api.us-east-1.amazonaws.com/staging/getConfig',
+			$this->get_api_base_url() . '/getConfig',
 			[
 				'headers' => [ 'Content-Type' => 'application/json' ],
 				'body'    => wp_json_encode( [ 'idPlugin' => $id_plugin ] ),
@@ -177,10 +224,10 @@ class Adresles_Checkout_Plugin {
 	 * Generate and cache JWT token.
 	 */
 	public function get_jwt_token() {
-		// $cached_token = get_transient( 'adresles_jwt_token' );
-		// if ( $cached_token ) {
-		// 	return $cached_token;
-		// }
+		$cached_token = get_transient( 'adresles_jwt_token' );
+		if ( $cached_token ) {
+			return $cached_token;
+		}
 
 		$keys = get_option( 'adresles_plugin_keys', [] );
 
@@ -189,7 +236,7 @@ class Adresles_Checkout_Plugin {
 		}
 
 		$response = wp_remote_post(
-			'https://5uerf2f2o9.execute-api.us-east-1.amazonaws.com/staging/getToken',
+			$this->get_api_base_url() . '/getToken',
 			[
 				'headers' => [ 'Content-Type' => 'application/json' ],
 				'body'    => wp_json_encode( [
@@ -215,6 +262,44 @@ class Adresles_Checkout_Plugin {
 	}
 
 	/**
+	 * Get Keys for configuration.
+	 */
+	public function get_keys_for_configuration() {
+		$token = $this->get_jwt_token();
+
+		if ( is_wp_error( $token ) ) {
+			return $token;
+		}
+
+		$response = wp_remote_post(
+			$this->get_api_base_url() . '/getKeys',
+			[
+				'timeout' => 15,
+				'headers' => [
+					'Content-Type'  => 'application/json',
+					'Authorization' => 'Bearer ' . $token,
+				]
+			]
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		$data = json_decode( wp_remote_retrieve_body( $response ), true );
+
+		if ( wp_remote_retrieve_response_code( $response ) !== 200 ) {
+			return new WP_Error( 'api_error', __( 'API error when fetching user.', 'adresles-checkout' ), $data );
+		}
+
+		if ( empty( $data ) ) {
+			return new WP_Error( 'user_not_found', __( 'User not found.', 'adresles-checkout' ) );
+		}
+
+		return $data;
+	}
+
+	/**
 	 * Get user data by phone using JWT token.
 	 */
 	public function get_user_by_phone( $request ) {
@@ -225,7 +310,7 @@ class Adresles_Checkout_Plugin {
 		}
 
 		$response = wp_remote_post(
-			'https://5uerf2f2o9.execute-api.us-east-1.amazonaws.com/staging/getUser',
+			$this->get_api_base_url() . '/getUser',
 			[
 				'timeout' => 15,
 				'headers' => [

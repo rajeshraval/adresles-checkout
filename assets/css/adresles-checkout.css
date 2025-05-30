@@ -1,72 +1,220 @@
 #adresles_checkout_wrapper {
+
     margin-bottom: 20px;
+
 }
+
+
 
 .plugin-entry {
+
     background-color: #FFF;
+
     padding: 25px;
+
 }
+
+
 
 .plugin-entry h1 {
+
     text-align: center;
+
     font-weight: bold;
+
     font-family: Helvetica, Arial, sans-serif;
+
     font-size: 24px;
+
     border-bottom: 1px solid #E0E621;
+
     padding-bottom: 20px;
+
 }
+
+
 
 .plugin-entry .button-primary {
+
     background: #000000;
+
     padding: 4px 25px;
+
     font-family: Helvetica, Arial, sans-serif;
+
     font-weight: bold;
+
     border-radius: 6px;
+
 }
+
+
 
 #right-image {
+
     position: absolute;
+
     right: 10px;
+
 }
+
+
 
 .adresles-checkout-container {
+
     background: #000;
+
     color: #fff;
+
     padding: 15px;
+
     border-radius: 8px;
+
     margin-bottom: 15px;
+
 }
+
+
 
 .adresles-gift-section {
+
     background: #000;
+
     color: #fff;
+
     padding: 15px;
+
     border-radius: 8px;
+
 }
+
+
 
 .adresles-notice {
+
     background: #f8d7da;
+
     color: #721c24;
+
     padding: 10px;
+
     border-radius: 5px;
+
     margin-top: 10px;
+
 }
+
+
 
 .temp-msg-div {
+
     background: #fff;
+
     color: #721c24;
+
     padding: 10px;
+
     border-radius: 5px;
+
     margin-top: 10px;
+
 }
+
+
 
 .adresles-register-link {
+
     color: #007bff;
+
     text-decoration: none;
+
 }
+
+
 
 .adresles-register-link:hover {
+
     text-decoration: underline;
+
 }
 
+
+
 /* Add more custom styles here */
+
+.adresles-tooltip-wrapper {
+    position: relative;
+    display: inline-block;
+    margin-left: 8px;
+    cursor: pointer;
+}
+
+.adresles-tooltip-icon {
+    /* font-weight: bold;
+    background: #eee;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 14px;
+    display: inline-block;
+    vertical-align: middle; */
+}
+
+.adresles-tooltip-text {
+    visibility: hidden;
+    opacity: 0;
+    width: 312px;
+    background-color: #D9D8D6;
+    color: #000;
+    text-align: center;
+    padding: 8px 10px;
+    border-radius: 8px;
+    position: absolute;
+    z-index: 99;
+    top: 50%;
+    left: 30px;
+    transform: translateY(-50%);
+    transition: opacity 0.3s;
+    font-size: 11px;
+    line-height: 16px;
+}
+
+.adresles-tooltip-text::before{
+     content: "";
+    width: 0;
+    height: 0;
+    border-style: solid;
+    position: absolute;
+    left: -10px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-width: 8px 10px 8px 0;
+    border-color: transparent #D9D8D6 transparent transparent;
+}
+
+.adresles-tooltip-wrapper:hover .adresles-tooltip-text {
+    visibility: visible;
+    opacity: 1;
+}
+
+.adresles-tooltip-icon img {
+    width: 16px;
+    height: 16px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+@media (max-width: 768px) {
+    .adresles-tooltip-text{
+        width: 250px;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+    .adresles-tooltip-text::before{
+        left: 47%;
+        top: 0;
+        border-width: 0 8px 10px 8px;
+        border-color: transparent transparent #D9D8D6 transparent;
+    }
+}
