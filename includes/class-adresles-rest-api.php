@@ -50,6 +50,7 @@ class Adresles_Checkout_Plugin {
 		$phone     = $saved['phone'] ?? '';
 		$password  = $saved['password'] ?? wp_generate_password( 12, true );
 
+		// Handle form submission only
 		if (
 			isset( $_POST['adresles_register_nonce'] ) &&
 			wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['adresles_register_nonce'] ) ), 'adresles_register_plugin' )
@@ -64,23 +65,27 @@ class Adresles_Checkout_Plugin {
 				'state'          => true,
 				'rol'            => 'Administrador',
 				'position'       => 'Manager',
-				'registered_at'  => current_time( 'mysql' ),
+				'registered_at'  => current_time( 'mysql' ), // Save only on submit
 			];
 
-			$response = $this->register_plugin( $data );
-			if ( ! is_wp_error( $response ) ) {
+
+			if( isset( $saved['id_plugin'] ) && !empty( $saved['id_plugin'] ) ){
 				update_option( 'adresles_plugin_info', $data );
 				$saved = $data;
-				echo '<div class="notice notice-success"><p>Registration successful.</p></div>';
-			} else {
-				if ( $response->get_error_message() == 'A plugin with this idPlugin already exists' ) {
-					echo '<div class="notice notice-success"><p>Setting Saved.</p></div>';
-				} else {
-					echo '<div class="notice notice-error"><p>' . esc_html( $response->get_error_message() ) . '</p></div>';
-				}
-			}
+				echo '<div class="notice notice-success"><p>Setting Saved.</p></div>';
+			}else{
+				$response = $this->register_plugin( $data );
 
-			// Save field mapping
+				if ( ! is_wp_error( $response ) ) {
+					update_option( 'adresles_plugin_info', $data );
+					$saved = $data;
+					echo '<div class="notice notice-success"><p>Registration successful.</p></div>';
+				} else {				
+						echo '<div class="notice notice-error"><p>' . esc_html( $response->get_error_message() ) . '</p></div>';
+				}
+			}			
+
+			// Save field mapping if submitted
 			if ( ! empty( $_POST['field_mapping'] ) && is_array( $_POST['field_mapping'] ) ) {
 				$clean = [];
 				foreach ( $_POST['field_mapping'] as $k => $v ) {
@@ -90,67 +95,34 @@ class Adresles_Checkout_Plugin {
 				update_option( 'is_adresles_field_mapping_done', true );
 				$field_mappings = $clean;
 			}
-
-		}else{
-			$is_secret_code_avl = get_option('adresles_plugin_keys', false);
-
-			if( ! $is_secret_code_avl){
-
-				$data = [
-				'id_plugin'      => $plugin_id,
-				'name'           => $name,
-				'phone'          => $phone,
-				'email'          => $email,
-				'password'       => $password,
-				'enrollmentDate' => date( 'Y-m-d' ),
-				'state'          => true,
-				'rol'            => 'Administrador',
-				'position'       => 'Manager',
-				'registered_at'  => current_time( 'mysql' ),
-				];
-
-				$response = $this->register_plugin( $data );
-				if ( ! is_wp_error( $response ) ) {
-					update_option( 'adresles_plugin_info', $data );
-					$saved = $data;
-					echo '<div class="notice notice-success"><p>Registration successful.</p></div>';
-				} else {
-					if ( $response->get_error_message() == 'A plugin with this idPlugin already exists' ) {
-						echo '<div class="notice notice-success"><p>Setting Saved.</p></div>';
-					} else {
-						echo '<div class="notice notice-error"><p>' . esc_html( $response->get_error_message() ) . '</p></div>';
-					}
-				}
-
-			}			
-		}		
+		}
 
 		$api_mode = get_option( 'adresles_api_mode', 'staging' );
 
 		if ( isset( $_POST['adresles_api_mode'] ) ) {
 			update_option( 'adresles_api_mode', sanitize_text_field( $_POST['adresles_api_mode'] ) );
 			$api_mode = sanitize_text_field( $_POST['adresles_api_mode'] );
-		}		
+		}
 
 		$api_response = $this->get_keys_for_configuration();
 
-		
 		$api_fields = ( ! is_wp_error( $api_response ) && ! empty( $api_response['userDataKeys'] ) )
-			?  $api_response['userDataKeys']
+			? $api_response['userDataKeys']
 			: [];
-		
+
 		$wc_fields = [];
 		if ( class_exists( 'WC_Checkout' ) ) {
 			$checkout = WC()->checkout();
-			foreach ( $checkout->get_checkout_fields() as $section => $fields ) {
-				foreach ( $fields as $key => $props ) {
-					$wc_fields[ $key ] = $props['label'] ?? $key;
-				}
+			$billing_fields = $checkout->get_checkout_fields()['billing'] ?? [];
+
+			foreach ( $billing_fields as $key => $props ) {
+				$wc_fields[ $key ] = $props['label'] ?? $key;
 			}
 		}
 
 		require plugin_dir_path( __FILE__ ) . 'admin/configuration-settings.php';
 	}
+
 
 	/**
 	 * Register the plugin with Adresles API.
@@ -224,10 +196,10 @@ class Adresles_Checkout_Plugin {
 	 * Generate and cache JWT token.
 	 */
 	public function get_jwt_token() {
-		$cached_token = get_transient( 'adresles_jwt_token' );
-		if ( $cached_token ) {
-			return $cached_token;
-		}
+		// $cached_token = get_transient( 'adresles_jwt_token' );
+		// if ( $cached_token ) {
+		// 	return $cached_token;
+		// }
 
 		$keys = get_option( 'adresles_plugin_keys', [] );
 
@@ -256,7 +228,7 @@ class Adresles_Checkout_Plugin {
 			return new WP_Error( 'token_error', __( 'Failed to get JWT token.', 'adresles-checkout' ), $data );
 		}
 
-		set_transient( 'adresles_jwt_token', $data['token'], 2 * MINUTE_IN_SECONDS );
+		// set_transient( 'adresles_jwt_token', $data['token'], 2 * MINUTE_IN_SECONDS );
 
 		return $data['token'];
 	}
